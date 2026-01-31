@@ -117,6 +117,8 @@ EXPO_PUBLIC_WDK_INDEXER_BASE_URL=https://wdk-api.tether.io
 EXPO_PUBLIC_WDK_INDEXER_API_KEY=your_api_key_here
 ```
 
+Get your [API Key here](https://wdk-api.tether.io/register)
+
 ### 0.4 Verify Setup
 
 ```bash
