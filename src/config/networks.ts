@@ -1,4 +1,5 @@
 import { NetworkType } from '@tetherto/wdk-react-native-provider';
+import { ExtendedNetworkType } from '@/types/extended-types';
 
 export interface Network {
   id: string;
@@ -9,7 +10,10 @@ export interface Network {
   color: string;
 }
 
-export const networkConfigs: Record<NetworkType, Network> = {
+// Type for all supported networks including extended ones
+export type AllNetworkTypes = NetworkType | typeof ExtendedNetworkType.PLASMA;
+
+export const networkConfigs: Record<AllNetworkTypes, Network> = {
   [NetworkType.ETHEREUM]: {
     id: 'ethereum',
     name: 'Ethereum',
@@ -73,5 +77,13 @@ export const networkConfigs: Record<NetworkType, Network> = {
     gasColor: '#34C759',
     icon: require('../../assets/images/chains/lightning-logo.png'),
     color: '#F7CA3E',
+  },
+  [ExtendedNetworkType.PLASMA]: {
+    id: 'plasma',
+    name: 'Plasma',
+    gasLevel: 'Low',
+    gasColor: '#34C759',
+    icon: require('../../assets/images/chains/plasma-logo.png'),
+    color: '#00D4AA',
   },
 };
