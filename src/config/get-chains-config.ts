@@ -1,3 +1,5 @@
+import { PLASMA_CONFIG, USDT0_CONFIG } from '@/types/extended-types';
+
 const getChainsConfig = () => {
   return {
     ethereum: {
@@ -75,6 +77,18 @@ const getChainsConfig = () => {
       bridgeMaxFee: 1000000,
       paymasterToken: {
         address: 'TXYZopYRdj2D9XRtbG411XZZ3kM5VkAeBf',
+      },
+    },
+    // Plasma network configuration (EVM-compatible L1 for stablecoins)
+    plasma: {
+      chainId: PLASMA_CONFIG.chainId,
+      blockchain: 'plasma',
+      provider: PLASMA_CONFIG.rpcUrl,
+      transferMaxFee: 0, // Plasma offers gas-free USDT transfers
+      swapMaxFee: 1000000,
+      bridgeMaxFee: 1000000,
+      paymasterToken: {
+        address: USDT0_CONFIG.address, // USDT0 on Plasma
       },
     },
   };

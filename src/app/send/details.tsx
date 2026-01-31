@@ -1,4 +1,4 @@
-import { AssetTicker, useWallet, WDKService } from '@tetherto/wdk-react-native-provider';
+import { AssetTicker, NetworkType, useWallet, WDKService } from '@tetherto/wdk-react-native-provider';
 import { CryptoAddressInput } from '@tetherto/wdk-uikit-react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useDebouncedNavigation } from '@/hooks/use-debounced-navigation';
@@ -13,6 +13,7 @@ import {
   calculateGasFee,
   type GasFeeEstimate,
 } from '@/utils/gas-fee-calculator';
+import { isPlasmaNetwork, isUSDT0Asset } from '@/types/extended-types';
 import {
   Alert,
   Keyboard,
@@ -348,12 +349,25 @@ export default function SendDetailsScreen() {
         numericAmount = numericAmount / tokenPrice;
       }
 
+      // Check if this is a Plasma network transaction
+      if (isPlasmaNetwork(networkType) || isUSDT0Asset(assetTicker)) {
+        // Plasma network transactions require native WDK provider support
+        // which is currently pending. Show informative message.
+        Alert.alert(
+          'Plasma Network',
+          'USDT0 transactions on Plasma network will be available once the WDK provider adds native support. The network configuration is ready.',
+          [{ text: 'OK' }]
+        );
+        setSendingTransaction(false);
+        return;
+      }
+
       const sendResult = await WDKService.sendByNetwork(
-        networkType,
+        networkType as NetworkType,
         0, // account index
         numericAmount,
         recipientAddress,
-        assetTicker
+        assetTicker as AssetTicker
       );
 
       setTransactionResult({ txId: sendResult });

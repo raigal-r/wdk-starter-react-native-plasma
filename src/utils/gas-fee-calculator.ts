@@ -1,4 +1,5 @@
 import { AssetTicker, NetworkType, WDKService } from '@tetherto/wdk-react-native-provider';
+import { ExtendedNetworkType, ExtendedAssetTicker, isPlasmaNetwork, isUSDT0Asset } from '@/types/extended-types';
 
 export interface GasFeeEstimate {
   fee?: number;
@@ -29,11 +30,17 @@ const QUOTE_RECIPIENTS = {
       [NetworkType.TON]: 'EQD5mxRgCuRNLxKxeOjG6r14iSroLF5FtomPnet-sgP5xNJb',
     },
   },
+  // USDT0 on Plasma network (uses EVM address format)
+  [ExtendedAssetTicker.USDT0]: {
+    networks: {
+      [ExtendedNetworkType.PLASMA]: '0x8d42eb95360bf68d65e5a810986b2ebd88c5e606',
+    },
+  },
 };
 
-// Network type mapping
-export const getNetworkType = (networkId: string): NetworkType => {
-  const networkMap: Record<string, NetworkType> = {
+// Network type mapping (includes extended Plasma network)
+export const getNetworkType = (networkId: string): NetworkType | string => {
+  const networkMap: Record<string, NetworkType | string> = {
     ethereum: NetworkType.ETHEREUM,
     polygon: NetworkType.POLYGON,
     arbitrum: NetworkType.ARBITRUM,
@@ -42,16 +49,18 @@ export const getNetworkType = (networkId: string): NetworkType => {
     ton: NetworkType.TON,
     tron: NetworkType.TRON,
     solana: NetworkType.SOLANA,
+    plasma: ExtendedNetworkType.PLASMA,
   };
   return networkMap[networkId] || NetworkType.ETHEREUM;
 };
 
-// Asset ticker mapping
-export const getAssetTicker = (tokenId: string): AssetTicker => {
-  const assetMap: Record<string, AssetTicker> = {
+// Asset ticker mapping (includes extended USDT0)
+export const getAssetTicker = (tokenId: string): AssetTicker | string => {
+  const assetMap: Record<string, AssetTicker | string> = {
     btc: AssetTicker.BTC,
     usdt: AssetTicker.USDT,
     xaut: AssetTicker.XAUT,
+    usdt0: ExtendedAssetTicker.USDT0,
   };
   return assetMap[tokenId?.toLowerCase()] || AssetTicker.USDT;
 };
@@ -68,8 +77,22 @@ export const calculateGasFee = async (
   try {
     const networkType = getNetworkType(networkId);
     const assetTicker = getAssetTicker(tokenId);
+
+    // Plasma network offers gas-free USDT0 transfers
+    if (isPlasmaNetwork(networkType) && isUSDT0Asset(assetTicker)) {
+      return { fee: 0 };
+    }
+
     // @ts-expect-error
-    const quoteRecipient = QUOTE_RECIPIENTS[assetTicker].networks[networkType];
+    const quoteRecipient = QUOTE_RECIPIENTS[assetTicker]?.networks?.[networkType];
+
+    // If no quote recipient is configured for this network/asset combo, return error
+    if (!quoteRecipient) {
+      return {
+        fee: undefined,
+        error: 'Network not supported for this asset',
+      };
+    }
 
     if (!amount && networkType === NetworkType.SEGWIT) {
       return {
@@ -79,11 +102,11 @@ export const calculateGasFee = async (
     }
 
     const gasFee = await WDKService.quoteSendByNetwork(
-      networkType,
+      networkType as NetworkType,
       0, // account index
       assetTicker === AssetTicker.BTC ? parseFloat(amount!.toFixed(8)) : 1,
       quoteRecipient,
-      assetTicker
+      assetTicker as AssetTicker
     );
 
     return { fee: gasFee };

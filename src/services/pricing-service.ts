@@ -1,16 +1,20 @@
 import { BitfinexPricingClient } from '@tetherto/wdk-pricing-bitfinex-http';
 import { PricingProvider } from '@tetherto/wdk-pricing-provider';
 import { AssetTicker } from '@tetherto/wdk-react-native-provider';
+import { ExtendedAssetTicker } from '@/types/extended-types';
 import DecimalJS from 'decimal.js';
 
 export enum FiatCurrency {
   USD = 'USD',
 }
 
+// Type for all asset tickers including extended ones (USDT0)
+export type AllAssetTickers = AssetTicker | typeof ExtendedAssetTicker.USDT0;
+
 class PricingService {
   private static instance: PricingService;
   private provider: PricingProvider | null = null;
-  private fiatExchangeRateCache: Record<FiatCurrency, Record<AssetTicker, number>> | undefined;
+  private fiatExchangeRateCache: Record<FiatCurrency, Record<AllAssetTickers, number>> | undefined;
   private isInitialized: boolean = false;
 
   private constructor() {}
@@ -39,6 +43,7 @@ class PricingService {
           [AssetTicker.BTC]: await this.provider.getLastPrice(AssetTicker.BTC, FiatCurrency.USD),
           [AssetTicker.USDT]: 1,
           [AssetTicker.XAUT]: await this.provider.getLastPrice(AssetTicker.XAUT, FiatCurrency.USD),
+          [ExtendedAssetTicker.USDT0]: 1, // USDT0 is 1:1 backed with USDT
         },
       };
 
@@ -49,12 +54,17 @@ class PricingService {
     }
   }
 
-  async getFiatValue(value: number, asset: AssetTicker, currency: FiatCurrency): Promise<number> {
+  async getFiatValue(value: number, asset: AllAssetTickers | string, currency: FiatCurrency): Promise<number> {
     if (!this.isInitialized || !this.fiatExchangeRateCache) {
       throw new Error('Pricing service not initialized. Call initialize() first.');
     }
 
-    return new DecimalJS(value).mul(this.fiatExchangeRateCache[currency][asset]).toNumber();
+    const rate = this.fiatExchangeRateCache[currency][asset as AllAssetTickers];
+    if (rate === undefined) {
+      // Default to 1 for unknown stablecoins (like USDT0)
+      return new DecimalJS(value).toNumber();
+    }
+    return new DecimalJS(value).mul(rate).toNumber();
   }
 
   async refreshExchangeRates(): Promise<void> {
@@ -68,6 +78,7 @@ class PricingService {
           [AssetTicker.BTC]: await this.provider.getLastPrice(AssetTicker.BTC, FiatCurrency.USD),
           [AssetTicker.USDT]: 1,
           [AssetTicker.XAUT]: await this.provider.getLastPrice(AssetTicker.XAUT, FiatCurrency.USD),
+          [ExtendedAssetTicker.USDT0]: 1, // USDT0 is 1:1 backed with USDT
         },
       };
 
@@ -78,7 +89,7 @@ class PricingService {
     }
   }
 
-  getExchangeRate(asset: AssetTicker, currency: FiatCurrency): number | undefined {
+  getExchangeRate(asset: AllAssetTickers, currency: FiatCurrency): number | undefined {
     return this.fiatExchangeRateCache?.[currency]?.[asset];
   }
 

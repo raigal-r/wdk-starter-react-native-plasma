@@ -1,12 +1,13 @@
 import { FiatCurrency } from '@/services/pricing-service';
 import { NetworkType } from '@tetherto/wdk-react-native-provider';
+import { ExtendedNetworkType, type AllNetworkTypes } from '@/types/extended-types';
 
 export interface AssetConfig {
   name: string;
   symbol: string;
   icon: any;
   color: string;
-  supportedNetworks: NetworkType[];
+  supportedNetworks: (NetworkType | AllNetworkTypes)[];
 }
 
 export interface Asset {
@@ -48,5 +49,12 @@ export const assetConfig: Record<string, AssetConfig> = {
     icon: require('../../assets/images/tokens/tether-xaut-logo.png'),
     color: '#ffffff',
     supportedNetworks: [NetworkType.ETHEREUM],
+  },
+  usdt0: {
+    name: 'USD₮0',
+    symbol: 'USD₮0',
+    icon: require('../../assets/images/tokens/tether-usdt0-logo.png'),
+    color: '#ffffff',
+    supportedNetworks: [ExtendedNetworkType.PLASMA],
   },
 };
